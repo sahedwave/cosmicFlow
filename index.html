@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cosmic Flow · </title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Segoe UI',system-ui,sans-serif;color:#fff;user-select:none}
+#c{display:block;width:100%;height:100%;cursor:none;position:absolute;inset:0}
+#cursor{position:fixed;pointer-events:none;z-index:200;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;border:2px solid #fff;transition:border-color .2s,transform .1s;mix-blend-mode:screen}
+/* ── TOP BAR ── */
+#top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:linear-gradient(to bottom,rgba(5,5,20,.95),transparent);z-index:50;pointer-events:none}
+#logo{font-size:22px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(110deg,#a78bfa,#38bdf8,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#logo0{
+  position: fixed;
+  top: 6px;
+  left: 15px;
+
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.5px;
+
+  background:linear-gradient(110deg,#a78bfa,#38bdf8,#34d399);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+
+  z-index: 100;
+}
+#logo sub{font-size:10px;letter-spacing:2px;color:#6366f1;-webkit-text-fill-color:#6366f1}
+#top-right{display:flex;align-items:center;gap:10px;pointer-events:auto}
+.pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:500;cursor:default;backdrop-filter:blur(12px);transition:background .2s}
+.pill:hover{background:rgba(255,255,255,.12)}
+.pill.btn{cursor:pointer}
+.pill.btn:active{transform:scale(.97)}
+/* ── TOOLBAR ── */
+#toolbar{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:8px;background:rgba(8,8,24,.85);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:10px 14px;backdrop-filter:blur(20px)}
+.tool{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 11px;border-radius:12px;border:1px solid transparent;transition:all .18s;min-width:54px}
+.tool:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
+.tool.active{border-color:rgba(255,255,255,.3)}
+.tool-icon{font-size:18px;line-height:1}
+.tool-label{font-size:9px;letter-spacing:.8px;color:rgba(255,255,255,.45);text-transform:uppercase;font-weight:500}
+.tool.active .tool-label{color:rgba(255,255,255,.9)}
+#toolbar-sep{width:1px;height:36px;background:rgba(255,255,255,.1);margin:0 4px}
+/* ── SIDE PANEL ── */
+#panel{position:fixed;right:18px;top:70px;width:200px;z-index:50;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.pcard{background:rgba(8,8,24,.85);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;backdrop-filter:blur(16px)}
+.pcard-title{font-size:10px;letter-spacing:1.2px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px;font-weight:500}
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.slider-row label{font-size:11px;color:rgba(255,255,255,.55);width:52px;flex-shrink:0}
+.slider-row input[type=range]{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.15);border-radius:99px;outline:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 0 6px rgba(255,255,255,.4)}
+.slider-val{font-size:11px;color:rgba(255,255,255,.6);width:28px;text-align:right}
+/* color swatches */
+#swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s}
+.swatch:hover{transform:scale(1.15)}
+.swatch.sel{border-color:#fff;transform:scale(1.15)}
+/* toggle rows */
+.tog-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tog-row:last-child{margin-bottom:0}
+.tog-label{font-size:11px;color:rgba(255,255,255,.6)}
+.tog{width:32px;height:18px;border-radius:99px;background:rgba(255,255,255,.15);cursor:pointer;position:relative;transition:background .2s}
+.tog.on{background:#6366f1}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .2s}
+.tog.on::after{transform:translateX(14px)}
+/* stats */
+#stats{position:fixed;left:18px;bottom:26px;font-size:10px;color:rgba(255,255,255,.25);line-height:1.8;pointer-events:none;z-index:50}
+/* onboarding */
+#ob{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:100;pointer-events:auto;transition:opacity .5s,transform .5s}
+#ob.gone{opacity:0;transform:translateX(-50%) translateY(8px);pointer-events:none}
+#ob-card{background:rgba(10,10,30,.9);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:12px 18px 12px 14px;display:flex;align-items:center;gap:12px;max-width:340px;backdrop-filter:blur(20px)}
+#ob-icon{font-size:24px;flex-shrink:0}
+#ob-text{font-size:13px;line-height:1.45}
+#ob-x{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px}
+#ob-x:hover{color:#fff;background:rgba(255,255,255,.1)}
+/* share toast */
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:200;background:#22c55e;color:#fff;padding:8px 18px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s}
+#toast.show{opacity:1}
+/* physics legend */
+#legend{position:fixed;left:18px;top:70px;z-index:50;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.5px}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="cursor"></div>
+
+<!-- TOP BAR -->
+<div id="top">
+  <div id="logo">Cosmic Flow </div>
+  <div id="logo0">ALLIED</div>
+  <div id="top-right">
+    <div class="pill" id="fps-pill">60 fps</div>
+    <div class="pill" id="px-pill">0 particles</div>
+    <div class="pill btn" id="share-btn">⬡ Share</div>
+    <div class="pill btn" id="clear-btn">✕ Clear</div>
+  </div>
+</div>
+
+<!-- PHYSICS LEGEND -->
+<div id="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#818cf8"></div>Attractor</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#f87171"></div>Repulsor</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#34d399"></div>Vortex</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#fbbf24"></div>Gravity well</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#e879f9"></div>Magnetic dipole</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Black hole</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#7dd3fc"></div>Turbulence</div>
+</div>
+
+<!-- SIDE PANEL -->
+<div id="panel">
+  <div class="pcard">
+    <div class="pcard-title">Simulation</div>
+    <div class="slider-row">
+      <label>Speed</label>
+      <input type="range" id="sl-speed" min="0.1" max="3" step="0.05" value="1"/>
+      <span class="slider-val" id="sv-speed">1.0×</span>
+    </div>
+    <div class="slider-row">
+      <label>Spawn</label>
+      <input type="range" id="sl-spawn" min="10" max="150" step="5" value="70"/>
+      <span class="slider-val" id="sv-spawn">70</span>
+    </div>
+    <div class="slider-row">
+      <label>Damping</label>
+      <input type="range" id="sl-damp" min="0.8" max="0.99" step="0.005" value="0.965"/>
+      <span class="slider-val" id="sv-damp">.965</span>
+    </div>
+  </div>
+  <div class="pcard">
+    <div class="pcard-title">Your Ink Color</div>
+    <div id="swatches"></div>
+  </div>
+  <div class="pcard">
+    <div class="pcard-title">Toggles</div>
+    <div class="tog-row"><span class="tog-label">Field lines</span><div class="tog" id="tog-field"></div></div>
+    <div class="tog-row"><span class="tog-label">Audio</span><div class="tog on" id="tog-audio"></div></div>
+    <div class="tog-row"><span class="tog-label">Echo trails</span><div class="tog on" id="tog-echo"></div></div>
+    <div class="tog-row"><span class="tog-label">Stars</span><div class="tog on" id="tog-stars"></div></div>
+  </div>
+</div>
+
+<!-- TOOL BAR -->
+<div id="toolbar">
+  <div class="tool active" data-tool="attractor" title="Left-click">
+    <div class="tool-icon">◉</div>
+    <div class="tool-label">Attract</div>
+  </div>
+  <div class="tool" data-tool="repulsor" title="Space">
+    <div class="tool-icon">⟲</div>
+    <div class="tool-label">Repulse</div>
+  </div>
+  <div class="tool" data-tool="vortex" title="V">
+    <div class="tool-icon">🌀</div>
+    <div class="tool-label">Vortex</div>
+  </div>
+  <div class="tool" data-tool="gravity" title="G">
+    <div class="tool-icon">⊙</div>
+    <div class="tool-label">Gravity</div>
+  </div>
+  <div class="tool" data-tool="dipole" title="D">
+    <div class="tool-icon">⇌</div>
+    <div class="tool-label">Dipole</div>
+  </div>
+  <div class="tool" data-tool="blackhole" title="B">
+    <div class="tool-icon">◈</div>
+    <div class="tool-label">Black hole</div>
+  </div>
+  <div class="tool" data-tool="turbulence" title="T">
+    <div class="tool-icon">≋</div>
+    <div class="tool-label">Turbulence</div>
+  </div>
+  <div id="toolbar-sep"></div>
+  <div class="tool" data-tool="erase" title="E">
+    <div class="tool-icon">⬡</div>
+    <div class="tool-label">Erase</div>
+  </div>
+</div>
+
+<div id="stats"></div>
+<div id="ob"><div id="ob-card"><div id="ob-icon">✦</div><div id="ob-text">Move cursor to paint · Click to place forces · Pick a tool below</div><button id="ob-x">✕</button></div></div>
+<div id="toast">Link copied!</div>
+
+<script>
+(()=>{
+"use strict";
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+const MAX_P       = 25000;
+const P_LIFE      = 3.2;
+const FORCE_LIFE  = 11000;
+const ECHO_LIFE   = 2500;
+const MAX_DT      = 0.1;
+const RIPPLE_POOL = 12;
+const ECHO_POOL   = 40;
+const SIM_BOTS    = 2;
+
+// ── Force type physics kernels (dispatch table, not switch) ──────────────────
+// Each kernel: fn(px,py,fx,fy,dx,dy,dSq,dist,dt,f) → [ax,ay]
+const FORCE_KERNELS = {
+  attractor(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq<0.5||dSq>500)return[0,0];
+    const s=100/dSq*dt;
+    return[dx/dist*s,dy/dist*s];
+  },
+  repulsor(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq<0.5||dSq>450)return[0,0];
+    const s=110/dSq*dt;
+    return[-dx/dist*s,-dy/dist*s];
+  },
+  vortex(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq<0.5||dSq>550)return[0,0];
+    // Tangential force (perpendicular to radius)
+    const s=85/dSq*dt*f.spin;
+    return[-dy/dist*s,dx/dist*s];
+  },
+  gravity(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq<0.3||dSq>800)return[0,0];
+    // Newtonian gravity: F∝1/r² with mass
+    const s=f.mass*140/Math.max(dSq,2)*dt;
+    return[dx/dist*s,dy/dist*s];
+  },
+  dipole(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq<1||dSq>600)return[0,0];
+    // Magnetic dipole: F ∝ cos(θ) towards N pole, away from S pole
+    const angle=Math.atan2(dy,dx);
+    const theta=angle-f.angle;
+    const s=90/dSq*dt;
+    const cos=Math.cos(theta);
+    return[dx/dist*s*cos,dy/dist*s*cos];
+  },
+  blackhole(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq<0.1)return[0,0];
+    // Event horizon: extreme pull, accretion disk tangential component
+    const s=Math.min(220/dSq,25)*dt;
+    const tang=0.4*s; // orbital tangential push
+    return[dx/dist*s + -dy/dist*tang, dy/dist*s + dx/dist*tang];
+  },
+  turbulence(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
+    if(dSq>600)return[0,0];
+    // Random-looking but deterministic chaos using position hash
+    const h1=Math.sin(px*0.07+f.seed)*43758.5453;
+    const h2=Math.sin(py*0.07+f.seed*1.3)*43758.5453;
+    const s=60/Math.max(dSq,5)*dt;
+    return[(h1-(h1|0)-.5)*s*2,(h2-(h2|0)-.5)*s*2];
+  },
+  erase(){return[0,0];}
+};
+
+// ── Tool color signature (ink system) ────────────────────────────────────────
+const TOOL_INK = {
+  attractor: [130,140,255],
+  repulsor:  [255,100,100],
+  vortex:    [52,211,153],
+  gravity:   [251,191,36],
+  dipole:    [232,121,249],
+  blackhole: [249,115,22],
+  turbulence:[125,211,252],
+  erase:     [255,255,255],
+};
+
+const TOOL_HEX = {
+  attractor:'#818cf8',repulsor:'#f87171',vortex:'#34d399',
+  gravity:'#fbbf24',dipole:'#e879f9',blackhole:'#f97316',
+  turbulence:'#7dd3fc',erase:'#ffffff'
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let W=0,H=0;
+let mouseX=0,mouseY=0,onCanvas=false;
+let activeTool='attractor';
+let simSpeed=1, spawnRate=70, dampVal=0.965;
+let showField=false, audioOn=true, echoOn=true, starsOn=true;
+let activeP=0, fps=0, lastFpsTime=0, frameCount=0;
+
+const palette=['#818cf8','#38bdf8','#f472b6','#34d399','#fbbf24','#fb7185','#a3e635','#f97316'];
+let myColor=[130,140,255], myHex='#818cf8';
+let spawnColorMode = 'dynamic'; 
+// 'fixed' | 'random' | 'gradient' | 'dynamic'
+// ═══════════════════════════════════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+let dpr=1;
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  W=canvas.offsetWidth; H=canvas.offsetHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  ctx.scale(dpr,dpr);
+}
+resize(); window.addEventListener('resize',resize);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CURL NOISE (no external deps)
+// ═══════════════════════════════════════════════════════════════════════════════
+const perm=new Uint8Array(512);
+(()=>{
+  const p=new Uint8Array(256);
+  for(let i=0;i<256;i++)p[i]=i;
+  for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=p[i];p[i]=p[j];p[j]=t;}
+  for(let i=0;i<512;i++)perm[i]=p[i&255];
+})();
+const G3=1/6;
+function simplex3(x,y,z){
+  const s=(x+y+z)/3,i=Math.floor(x+s),j=Math.floor(y+s),k=Math.floor(z+s);
+  const t0=(i+j+k)*G3;
+  const x0=x-i+t0,y0=y-j+t0,z0=z-k+t0;
+  let i1,j1,k1,i2,j2,k2;
+  if(x0>=y0){if(y0>=z0){i1=1;j1=0;k1=0;i2=1;j2=1;k2=0}
+  else if(x0>=z0){i1=1;j1=0;k1=0;i2=1;j2=0;k2=1}
+  else{i1=0;j1=0;k1=1;i2=1;j2=0;k2=1}}
+  else{if(y0<z0){i1=0;j1=0;k1=1;i2=0;j2=1;k2=1}
+  else if(x0<z0){i1=0;j1=1;k1=0;i2=0;j2=1;k2=1}
+  else{i1=0;j1=1;k1=0;i2=1;j2=1;k2=0}}
+  const x1=x0-i1+G3,y1=y0-j1+G3,z1=z0-k1+G3;
+  const x2=x0-i2+2*G3,y2=y0-j2+2*G3,z2=z0-k2+2*G3;
+  const x3=x0-1+3*G3,y3=y0-1+3*G3,z3=z0-1+3*G3;
+  const ii=i&255,jj=j&255,kk=k&255;
+  function g(h,x,y,z){h&=15;const u=h<8?x:y,v=h<4?y:h===12||h===14?x:z;return((h&1)?-u:u)+((h&2)?-v:v)}
+  function cn(t2,x,y,z,gi){return t2<0?0:t2*t2*t2*t2*g(perm[gi],x,y,z)}
+  return 32*(
+    cn(.6-x0*x0-y0*y0-z0*z0,x0,y0,z0,perm[ii+perm[jj+perm[kk]]])+
+    cn(.6-x1*x1-y1*y1-z1*z1,x1,y1,z1,perm[ii+i1+perm[jj+j1+perm[kk+k1]]])+
+    cn(.6-x2*x2-y2*y2-z2*z2,x2,y2,z2,perm[ii+i2+perm[jj+j2+perm[kk+k2]]])+
+    cn(.6-x3*x3-y3*y3-z3*z3,x3,y3,z3,perm[ii+1+perm[jj+1+perm[kk+1]]])
+  );
+}
+const E=1e-4;
+function curlX(x,y,z){return(simplex3(x,y+E,z)-simplex3(x,y-E,z)-simplex3(x,y,z+E)+simplex3(x,y,z-E))/(2*E)}
+function curlY(x,y,z){return(simplex3(x,y,z+E)-simplex3(x,y,z-E)-simplex3(x+E,y,z)+simplex3(x-E,y,z))/(2*E)}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PARTICLE POOL (typed arrays, zero GC in loop)
+// ═══════════════════════════════════════════════════════════════════════════════
+const px2=new Float32Array(MAX_P);
+const py2=new Float32Array(MAX_P);
+const pvx=new Float32Array(MAX_P);
+const pvy=new Float32Array(MAX_P);
+const plife=new Float32Array(MAX_P);
+const pr=new Uint8Array(MAX_P);
+const pg=new Uint8Array(MAX_P);
+const pb=new Uint8Array(MAX_P);
+const pir=new Uint8Array(MAX_P); // ink base color
+const pig=new Uint8Array(MAX_P);
+const pib=new Uint8Array(MAX_P);
+const pact=new Uint8Array(MAX_P);
+let spawnIdx=0;
+
+function spawnP(x, y, inkR, inkG, inkB) {
+  const i = spawnIdx;
+  pact[i] = 1;
+
+  // Tight spread for thin line look
+  px2[i] = x + (Math.random() - 0.5) * 11;
+  py2[i] = y + (Math.random() - 0.5) * 11;
+
+  // Gentle velocity for smooth silk flow
+  pvx[i] = (Math.random() - 0.5) * 2.1;
+  pvy[i] = (Math.random() - 0.5) * 2.1;
+
+  plife[i] = P_LIFE;
+  pr[i] = inkR; 
+  pg[i] = inkG; 
+  pb[i] = inkB;
+  pir[i] = inkR; 
+  pig[i] = inkG; 
+  pib[i] = inkB;
+
+  spawnIdx = (spawnIdx + 1) % MAX_P;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FORCE FIELDS
+// ═══════════════════════════════════════════════════════════════════════════════
+const forces=[];
+let _fid=0;
+
+function addForce(x,y,tool,colorOverride){
+  if(tool==='erase'){
+    eraseAt(x,y); return;
+  }
+  const hex=colorOverride||TOOL_HEX[tool];
+  const ink=TOOL_INK[tool];
+  forces.push({
+    id:_fid++, x,y,type:tool,
+    color:hex, ink,
+    createdAt:performance.now(),
+    // Per-type extra params
+    spin: tool==='vortex' ? (Math.random()<.5?1:-1) : 1,
+    mass: tool==='gravity' ? (.5+Math.random()*.8) : 1,
+    angle: tool==='dipole' ? (Math.random()*Math.PI*2) : 0,
+    seed: tool==='turbulence' ? (Math.random()*100) : 0,
+  });
+  triggerRipple(x,y,tool);
+  playForceSound(tool,x,y);
+}
+
+function eraseAt(x,y){
+  const r=80;
+  for(let i=forces.length-1;i>=0;i--){
+    const f=forces[i];
+    const dx=f.x-x,dy=f.y-y;
+    if(dx*dx+dy*dy<r*r){
+      scheduleEcho(f);
+      forces.splice(i,1);
+    }
+  }
+}
+
+function pruneForces(){
+  const now=performance.now();
+  for(let i=forces.length-1;i>=0;i--){
+    if(now-forces[i].createdAt>FORCE_LIFE){
+      scheduleEcho(forces[i]);
+      forces.splice(i,1);
+    }
+  }
+}
+
+// ── life scale with quadratic ease ───────────────────────────────────────────
+function lifeScale(f){
+  const age=(performance.now()-f.createdAt)/1000;
+  const tot=FORCE_LIFE/1000;
+  if(age<.6)return age/.6*age/.6;
+  if(age>tot-.6)return Math.pow((tot-age)/.6,2);
+  return 1;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ECHO TRAILS (pooled ring system for expired forces)
+// ═══════════════════════════════════════════════════════════════════════════════
+const echoes=new Array(ECHO_POOL).fill(null).map(()=>({active:false,x:0,y:0,type:'',color:'#fff',born:0}));
+let echoIdx=0;
+function scheduleEcho(f){
+  if(!echoOn)return;
+  const e=echoes[echoIdx];
+  e.active=true; e.x=f.x; e.y=f.y; e.type=f.type; e.color=f.color; e.born=performance.now();
+  echoIdx=(echoIdx+1)%ECHO_POOL;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RIPPLE POOL
+// ═══════════════════════════════════════════════════════════════════════════════
+const ripples=new Array(RIPPLE_POOL).fill(null).map(()=>({active:false,x:0,y:0,age:0,type:''}));
+let rippleIdx=0;
+function triggerRipple(x,y,type){
+  const r=ripples[rippleIdx];
+  r.active=true; r.x=x; r.y=y; r.age=0; r.type=type;
+  rippleIdx=(rippleIdx+1)%RIPPLE_POOL;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIMULATED BOTS
+// ═══════════════════════════════════════════════════════════════════════════════
+const BOT_COLORS=[
+  {r:255,g:150,b:60,hex:'#ff963c'},
+  {r:100,g:220,b:180,hex:'#64dcb4'},
+];
+const bots=BOT_COLORS.slice(0,SIM_BOTS).map((c,i)=>({
+  x:200+Math.random()*400, y:200+Math.random()*200,
+  tx:0,ty:0, moveT:0, moveP:2.5+i*1.2,
+  forceT:0, forceP:7+i*3,
+  r:c.r,g:c.g,b:c.b,hex:c.hex,
+  preferredTool:['vortex','gravity','attractor','dipole'][i%4]
+}));
+bots.forEach(b=>{b.tx=100+Math.random()*(W||800);b.ty=80+Math.random()*(H||600);});
+
+function updateBots(dt){
+  for(const b of bots){
+    b.moveT+=dt;
+    if(b.moveT>b.moveP){
+      b.tx=80+Math.random()*Math.max(W-160,400);
+      b.ty=60+Math.random()*Math.max(H-120,300);
+      b.moveP=2+Math.random()*4; b.moveT=0;
+    }
+    const dx=b.tx-b.x,dy=b.ty-b.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d>1){const s=Math.min(d,160*dt);b.x+=dx/d*s;b.y+=dy/d*s;}
+    const n=Math.ceil(spawnRate*.4);
+    for(let i=0;i<n;i++)spawnP(b.x,b.y,b.r,b.g,b.b);
+    b.forceT+=dt;
+    if(b.forceT>b.forceP){
+      const tools=['attractor','repulsor','vortex','gravity','dipole'];
+      addForce(b.x,b.y,tools[Math.floor(Math.random()*tools.length)],b.hex);
+      b.forceP=6+Math.random()*10; b.forceT=0;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUDIO ENGINE (Web Audio API)
+// ═══════════════════════════════════════════════════════════════════════════════
+let audioCtx=null, masterGain=null, padGain=null, padOsc=null, padOsc2=null;
+
+function initAudio(){
+  if(audioCtx)return;
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=audioCtx.createGain(); masterGain.gain.value=0.4;
+    masterGain.connect(audioCtx.destination);
+    // Ambient pad: two detuned oscillators -> filter -> reverb-ish
+    padOsc=audioCtx.createOscillator(); padOsc.type='sine'; padOsc.frequency.value=60;
+    padOsc2=audioCtx.createOscillator(); padOsc2.type='sine'; padOsc2.frequency.value=60.4;
+    padGain=audioCtx.createGain(); padGain.gain.value=0;
+    const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=200;
+    padOsc.connect(filt); padOsc2.connect(filt); filt.connect(padGain); padGain.connect(masterGain);
+    padOsc.start(); padOsc2.start();
+  }catch(e){audioOn=false;}
+}
+
+function playForceSound(type,x,y){
+  if(!audioOn||!audioCtx)return;
+  try{
+    const pan=audioCtx.createStereoPanner(); pan.pan.value=Math.max(-1,Math.min(1,(x/W)*2-1));
+    pan.connect(masterGain);
+    const g=audioCtx.createGain(); g.connect(pan);
+
+    const sounds={
+      attractor:{freq:440,type:'sine',dur:.35,gain:.18,curve:[.18,0]},
+      repulsor: {freq:90, type:'sawtooth',dur:.4,gain:.12,curve:[.12,0]},
+      vortex:   {freq:280,type:'triangle',dur:.5,gain:.14,curve:[.14,0]},
+      gravity:  {freq:50, type:'sine',dur:.6,gain:.2,curve:[.2,0]},
+      dipole:   {freq:520,type:'square',dur:.3,gain:.1,curve:[.1,0]},
+      blackhole:{freq:30, type:'sawtooth',dur:.8,gain:.25,curve:[.25,0]},
+      turbulence:{freq:180,type:'triangle',dur:.4,gain:.13,curve:[.13,0]},
+    };
+    const s=sounds[type]||sounds.attractor;
+    const osc=audioCtx.createOscillator(); osc.type=s.type;
+    const lfo=audioCtx.createOscillator(); lfo.frequency.value=type==='vortex'?8:4;
+    const lfoG=audioCtx.createGain(); lfoG.gain.value=type==='blackhole'?15:s.freq*.04;
+    lfo.connect(lfoG); lfoG.connect(osc.frequency);
+    const now2=audioCtx.currentTime;
+    osc.frequency.setValueAtTime(s.freq,now2);
+    if(type==='blackhole')osc.frequency.exponentialRampToValueAtTime(s.freq*.3,now2+s.dur);
+    g.gain.setValueAtTime(s.curve[0],now2);
+    g.gain.exponentialRampToValueAtTime(0.0001,now2+s.dur);
+    osc.connect(g); osc.start(now2); osc.stop(now2+s.dur+.05);
+    lfo.start(now2); lfo.stop(now2+s.dur+.05);
+  }catch(e){}
+}
+
+function updatePadVolume(density){
+  if(!audioOn||!padGain||!audioCtx)return;
+  const target=Math.min(.35, density*0.0008);
+  padGain.gain.setTargetAtTime(target,audioCtx.currentTime,.8);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STARS
+// ═══════════════════════════════════════════════════════════════════════════════
+const STARS=320;
+const sx=new Float32Array(STARS),sy=new Float32Array(STARS),sr=new Float32Array(STARS),sa=new Float32Array(STARS),sph=new Float32Array(STARS),sspd=new Float32Array(STARS);
+for(let i=0;i<STARS;i++){sx[i]=Math.random();sy[i]=Math.random();sr[i]=.2+Math.random()*1.1;sa[i]=.08+Math.random()*.45;sph[i]=Math.random()*Math.PI*2;sspd[i]=.3+Math.random()*.9;}
+let starAngle=0;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARE / SNAPSHOT
+// ═══════════════════════════════════════════════════════════════════════════════
+function saveSnapshot(){
+  const snap=forces.map(f=>({x:f.x,y:f.y,type:f.type,color:f.color,spin:f.spin,mass:f.mass,angle:f.angle,seed:f.seed}));
+  const encoded=btoa(JSON.stringify(snap));
+  window.location.hash=encoded;
+  navigator.clipboard.writeText(window.location.href).catch(()=>{});
+  const toast=document.getElementById('toast');
+  toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2200);
+}
+function loadSnapshot(){
+  const h=window.location.hash.slice(1);
+  if(!h)return;
+  try{
+    const snap=JSON.parse(atob(h));
+    forces.length=0;
+    snap.forEach(f=>forces.push({...f,id:_fid++,createdAt:performance.now(),ink:TOOL_INK[f.type]||[255,255,255]}));
+  }catch(e){}
+}
+loadSnapshot();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════════════════════════════════
+const cursorEl=document.getElementById('cursor');
+
+const HOTKEYS={
+  Space:'repulsor',KeyV:'vortex',KeyG:'gravity',KeyD:'dipole',
+  KeyB:'blackhole',KeyT:'turbulence',KeyE:'erase',KeyA:'attractor'
+};
+
+window.addEventListener('pointermove',e=>{
+  mouseX=e.clientX; mouseY=e.clientY; onCanvas=true;
+  cursorEl.style.left=mouseX+'px'; cursorEl.style.top=mouseY+'px';
+});
+window.addEventListener('pointerleave',()=>{onCanvas=false;cursorEl.style.opacity='0'});
+window.addEventListener('pointerenter',()=>{cursorEl.style.opacity='1'});
+window.addEventListener('pointerdown',e=>{
+  if(e.target.closest('#toolbar,.pcard,#top-right,#ob,#panel'))return;
+  initAudio();
+  if(e.button===0)addForce(e.clientX,e.clientY,activeTool);
+});
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.code==='Space'){e.preventDefault();initAudio();addForce(mouseX,mouseY,activeTool==='repulsor'?'repulsor':'repulsor');}
+  const tool=HOTKEYS[e.code];
+  if(tool)setTool(tool);
+});
+window.addEventListener('contextmenu',e=>e.preventDefault());
+
+// ─ Toolbar ──────────────────────────────────────────────────────────────────
+function setTool(t){
+  activeTool=t;
+  document.querySelectorAll('.tool').forEach(el=>{
+    el.classList.toggle('active',el.dataset.tool===t);
+    if(el.dataset.tool===t){
+      const ink=TOOL_INK[t]||[255,255,255];
+      el.style.background=`rgba(${ink[0]},${ink[1]},${ink[2]},0.15)`;
+      el.style.borderColor=`rgba(${ink[0]},${ink[1]},${ink[2]},0.5)`;
+    }else{el.style.background='';el.style.borderColor='';}
+  });
+  cursorEl.style.borderColor=TOOL_HEX[t]||'#fff';
+  cursorEl.style.boxShadow=`0 0 8px ${TOOL_HEX[t]||'#fff'}66`;
+}
+document.querySelectorAll('.tool').forEach(el=>{
+  el.addEventListener('click',()=>setTool(el.dataset.tool));
+});
+setTool('attractor');
+
+// ─ Sliders ──────────────────────────────────────────────────────────────────
+function bindSlider(id,valId,key,fmt){
+  const sl=document.getElementById(id),vl=document.getElementById(valId);
+  sl.addEventListener('input',()=>{
+    const v=parseFloat(sl.value);
+    if(key==='speed')simSpeed=v;
+    if(key==='spawn')spawnRate=v;
+    if(key==='damp')dampVal=v;
+    vl.textContent=fmt(v);
+  });
+}
+bindSlider('sl-speed','sv-speed','speed',v=>v.toFixed(2)+'×');
+bindSlider('sl-spawn','sv-spawn','spawn',v=>v|0);
+bindSlider('sl-damp','sv-damp','damp',v=>'.'+v.toFixed(3).slice(2));
+
+// ─ Toggles ──────────────────────────────────────────────────────────────────
+function bindTog(id,fn){
+  const el=document.getElementById(id);
+  el.addEventListener('click',()=>{el.classList.toggle('on');fn(el.classList.contains('on'));});
+}
+bindTog('tog-field',v=>showField=v);
+bindTog('tog-audio',v=>{audioOn=v;if(v)initAudio();});
+bindTog('tog-echo',v=>echoOn=v);
+bindTog('tog-stars',v=>starsOn=v);
+
+// ─ Color swatches ───────────────────────────────────────────────────────────
+const swatchEl=document.getElementById('swatches');
+palette.forEach(hex=>{
+  const d=document.createElement('div');
+  d.className='swatch'; d.style.background=hex;
+  if(hex===myHex)d.classList.add('sel');
+  d.addEventListener('click',()=>{
+    myHex=hex;
+    const v=parseInt(hex.slice(1),16);
+    myColor=[(v>>16)&255,(v>>8)&255,v&255];
+    document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
+    d.classList.add('sel');
+  });
+  swatchEl.appendChild(d);
+});
+
+// ─ Share & Clear ────────────────────────────────────────────────────────────
+document.getElementById('share-btn').addEventListener('click',saveSnapshot);
+document.getElementById('clear-btn').addEventListener('click',()=>{forces.length=0;echoes.forEach(e=>e.active=false);pact.fill(0);});
+
+// ─ Onboarding ───────────────────────────────────────────────────────────────
+const ob=document.getElementById('ob');
+if(localStorage.getItem('cf7_seen')){ob.classList.add('gone');}
+else{
+  const hints=[
+    {icon:'✦',text:'Move cursor to paint · Click to place forces · Pick a tool below'},
+    {icon:'🌀',text:'V = Vortex · G = Gravity · D = Dipole · B = Black hole · T = Turbulence'},
+    {icon:'⬡',text:'Use the Share button to save and share your artwork via URL!'}
+  ];
+  let hs=0,ht=null;
+  function nextH(){hs++;if(hs>=hints.length){dismissOb();return;}document.getElementById('ob-icon').textContent=hints[hs].icon;document.getElementById('ob-text').textContent=hints[hs].text;ht=setTimeout(nextH,3000);}
+  function dismissOb(){clearTimeout(ht);ob.classList.add('gone');localStorage.setItem('cf7_seen','1');}
+  document.getElementById('ob-x').addEventListener('click',dismissOb);
+  document.body.addEventListener('click',e=>{if(!e.target.closest('#ob'))dismissOb();},{once:true});
+  ht=setTimeout(nextH,3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function hexRgb(h){const v=parseInt(h.slice(1),16);return[(v>>16)&255,(v>>8)&255,v&255];}
+function lerp3(r1,g1,b1,r2,g2,b2,t){return[(r1+(r2-r1)*t)|0,(g1+(g2-g1)*t)|0,(b1+(b2-b1)*t)|0];}
+
+// ── Force field visualizer ───────────────────────────────────────────────────
+function drawForce(f,t){
+  const ls=lifeScale(f);
+  if(ls<=0)return;
+  const age=(performance.now()-f.createdAt)/1000;
+  const [fr,fg,fb]=hexRgb(f.color);
+  ctx.save(); ctx.globalAlpha=ls;
+
+  switch(f.type){
+    case 'attractor':{
+      const pulse=1+Math.sin(t*5)*.12;
+      const gr=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,20*pulse);
+      gr.addColorStop(0,`rgba(${fr},${fg},${fb},.9)`);
+      gr.addColorStop(.5,`rgba(${fr},${fg},${fb},.35)`);
+      gr.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(f.x,f.y,20*pulse,0,Math.PI*2); ctx.fill();
+      // core
+      ctx.fillStyle=`rgb(${fr},${fg},${fb})`; ctx.beginPath(); ctx.arc(f.x,f.y,4,0,Math.PI*2); ctx.fill();
+      // halo
+      ctx.strokeStyle=`rgba(${fr},${fg},${fb},.2)`; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(f.x,f.y,52+age*12,0,Math.PI*2); ctx.stroke();
+      break;
+    }
+    case 'repulsor':{
+      for(let i=0;i<3;i++){
+        const ph=((t*.9+i*.33)%1);
+        ctx.strokeStyle=`rgba(${fr},${fg},${fb},${(Math.sin(ph*Math.PI)*.5).toFixed(2)})`;
+        ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(f.x,f.y,(8+ph*85)*ls,0,Math.PI*2); ctx.stroke();
+      }
+      ctx.fillStyle=`rgb(${fr},${fg},${fb})`; ctx.beginPath(); ctx.arc(f.x,f.y,4,0,Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'vortex':{
+      // Spinning spiral visual
+      const arms=3;
+      for(let a=0;a<arms;a++){
+        const baseAngle=t*f.spin*2+a*(Math.PI*2/arms);
+        ctx.strokeStyle=`rgba(${fr},${fg},${fb},.6)`;
+        ctx.lineWidth=1.5;
+        ctx.beginPath();
+        for(let r2=5;r2<55;r2+=2){
+          const ang=baseAngle+r2*.12;
+          const xp=f.x+Math.cos(ang)*r2;
+          const yp=f.y+Math.sin(ang)*r2;
+          r2===5?ctx.moveTo(xp,yp):ctx.lineTo(xp,yp);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle=`rgb(${fr},${fg},${fb})`; ctx.beginPath(); ctx.arc(f.x,f.y,5,0,Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'gravity':{
+      // Concentric gravity contours
+      const mass=f.mass;
+      for(let ring=1;ring<=4;ring++){
+        const r2=ring*18*mass;
+        const a2=(.4-ring*.08)*ls;
+        ctx.strokeStyle=`rgba(${fr},${fg},${fb},${a2.toFixed(2)})`; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.arc(f.x,f.y,r2,0,Math.PI*2); ctx.stroke();
+      }
+      // Mass indicator
+      const sz=(6+mass*6)*ls;
+      const gr2=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,sz*2);
+      gr2.addColorStop(0,`rgba(${fr},${fg},${fb},1)`);
+      gr2.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gr2; ctx.beginPath(); ctx.arc(f.x,f.y,sz*2,0,Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'dipole':{
+      // North/South poles
+      const dx2=Math.cos(f.angle)*28, dy2=Math.sin(f.angle)*28;
+      // N pole (attraction side)
+      const gnN=ctx.createRadialGradient(f.x+dx2,f.y+dy2,0,f.x+dx2,f.y+dy2,16);
+      gnN.addColorStop(0,`rgba(${fr},${fg},${fb},.9)`); gnN.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gnN; ctx.beginPath(); ctx.arc(f.x+dx2,f.y+dy2,16,0,Math.PI*2); ctx.fill();
+      // S pole (repulsion side)
+      const gnS=ctx.createRadialGradient(f.x-dx2,f.y-dy2,0,f.x-dx2,f.y-dy2,16);
+      gnS.addColorStop(0,`rgba(255,80,80,.9)`); gnS.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gnS; ctx.beginPath(); ctx.arc(f.x-dx2,f.y-dy2,16,0,Math.PI*2); ctx.fill();
+      // axis
+      ctx.strokeStyle=`rgba(${fr},${fg},${fb},.5)`; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(f.x-dx2,f.y-dy2); ctx.lineTo(f.x+dx2,f.y+dy2); ctx.stroke();
+      // Rotating arrow to show field direction
+      f.angle+=0.012;
+      break;
+    }
+    case 'blackhole':{
+      // Event horizon ring
+      const bhR=12*ls;
+      ctx.strokeStyle=`rgba(${fr},${fg},${fb},.9)`; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(f.x,f.y,bhR,0,Math.PI*2); ctx.stroke();
+      // Accretion disk (ellipse)
+      ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(t*.6); ctx.scale(1,.35);
+      const adGr=ctx.createRadialGradient(0,0,bhR+2,0,0,bhR+36);
+      adGr.addColorStop(0,`rgba(${fr},${fg},${fb},.8)`);
+      adGr.addColorStop(.5,`rgba(${fr},${fg},${fb},.3)`);
+      adGr.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=adGr; ctx.beginPath(); ctx.arc(0,0,bhR+36,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Dark center
+      ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(f.x,f.y,bhR-.5,0,Math.PI*2); ctx.fill();
+      // Gravitational lensing rings
+      for(let r2=1;r2<=2;r2++){
+        ctx.strokeStyle=`rgba(${fr},${fg},${fb},${(.25*ls/r2).toFixed(2)})`; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.arc(f.x,f.y,bhR+r2*22,0,Math.PI*2); ctx.stroke();
+      }
+      break;
+    }
+    case 'turbulence':{
+      // Noise pattern overlay
+      const sz=70;
+      for(let i=0;i<6;i++){
+        const ang=t*1.5+i*1.05;
+        const rx=f.x+Math.cos(ang)*sz*.6, ry=f.y+Math.sin(ang)*sz*.5;
+        const gr2=ctx.createRadialGradient(rx,ry,0,rx,ry,18);
+        gr2.addColorStop(0,`rgba(${fr},${fg},${fb},.25)`);
+        gr2.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=gr2; ctx.beginPath(); ctx.arc(rx,ry,18,0,Math.PI*2); ctx.fill();
+      }
+      ctx.fillStyle=`rgb(${fr},${fg},${fb})`; ctx.beginPath(); ctx.arc(f.x,f.y,4,0,Math.PI*2); ctx.fill();
+      break;
+    }
+  }
+
+  // ── Field lines overlay ─────────────────────────────────────────────────
+  if(showField){
+    ctx.save(); ctx.globalAlpha=.15*ls;
+    ctx.strokeStyle=`rgb(${fr},${fg},${fb})`; ctx.lineWidth=.8;
+    const steps=8, rMax=90;
+    for(let a=0;a<steps;a++){
+      const ang=a*(Math.PI*2/steps);
+      ctx.beginPath(); ctx.moveTo(f.x+Math.cos(ang)*18,f.y+Math.sin(ang)*18);
+      ctx.lineTo(f.x+Math.cos(ang)*rMax,f.y+Math.sin(ang)*rMax);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// ── Echo trails ──────────────────────────────────────────────────────────────
+function drawEchoes(){
+  const now=performance.now();
+  for(const e of echoes){
+    if(!e.active)continue;
+    const age=(now-e.born)/ECHO_LIFE;
+    if(age>1){e.active=false;continue;}
+    const a=Math.sin(age*Math.PI)*.5;
+    const [er,eg,eb]=hexRgb(e.color);
+    ctx.save(); ctx.globalAlpha=a;
+    ctx.strokeStyle=`rgb(${er},${eg},${eb})`; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(e.x,e.y,10+age*80,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+}
+function getSpawnColor(x, y, i, n, time) {
+
+  switch (spawnColorMode) {
+
+    case 'fixed':
+      return myColor;
+
+    case 'random':
+      return [
+        Math.random() * 255,
+        Math.random() * 255,
+        Math.random() * 255
+      ];
+
+    case 'gradient':
+      const t = i / (n - 1 || 1);
+      return [
+        128 + Math.sin(t * Math.PI * 2) * 127,
+        128 + Math.sin(t * Math.PI * 2 + 2) * 127,
+        128 + Math.sin(t * Math.PI * 2 + 4) * 127
+      ];
+
+    case 'dynamic':
+      const speedFactor = Math.abs(Math.sin(time * 2));
+      const posFactor = (x / W + y / H) * 0.5;
+
+      return [
+        100 + 155 * speedFactor,
+        100 + 155 * posFactor,
+        150 + 105 * Math.sin(time + posFactor)
+      ];
+  }
+
+  return myColor;
+}
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════════════════
+let lastT=0,fc=0,fpsT=0,fpsV=60;
+
+function frame(now){
+  requestAnimationFrame(frame);
+  const rawDt=(now-lastT)/1000; lastT=now;
+  if(rawDt<=0||rawDt>1)return;
+  const dt=Math.min(rawDt,MAX_DT)*simSpeed;
+  fc++; fpsT+=rawDt;
+  if(fpsT>1){fpsV=Math.round(fc/fpsT);fc=0;fpsT=0;}
+
+  // ── Background trail
+  ctx.fillStyle='rgba(4,4,16,0.17)';
+  ctx.fillRect(0,0,W,H);
+
+  // ── Stars
+  if(starsOn){
+    starAngle+=rawDt*0.01;
+    ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(starAngle); ctx.translate(-W/2,-H/2);
+    for(let i=0;i<STARS;i++){
+      sph[i]+=rawDt*sspd[i];
+      const a=sa[i]*(.55+.45*Math.sin(sph[i]));
+      ctx.fillStyle=`rgba(255,255,255,${a.toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(sx[i]*W,sy[i]*H,sr[i],0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── Bots
+  updateBots(dt);
+
+// ── Thin Rotating Line Spawn (Elegant Silk Brush) - FIXED
+if (onCanvas) {
+  const n = Math.max(8, Math.ceil(spawnRate * 0.68));   // ensure minimum spawns
+  const lineLength = 46;                                // thin line length
+  const rotationSpeed = 16.4;                            // nice rotation feel
+
+  const angle = (performance.now() / 1000) * rotationSpeed;
+
+  for (let i = 0; i < n; i++) {
+    // Even distribution along the line
+    const t = (i / (n - 1 || 1)) - 0.5;   // safe division
+
+    const offsetX = Math.cos(angle) * t * lineLength;
+    const offsetY = Math.sin(angle) * t * lineLength;
+
+    const spawnX = mouseX + offsetX;
+    const spawnY = mouseY + offsetY;
+
+const col = getSpawnColor(
+  spawnX, 
+  spawnY, 
+  i, 
+  n, 
+  performance.now() / 1000
+);
+
+spawnP(spawnX, spawnY, col[0], col[1], col[2]);  }
+}
+
+  // ── Prune forces
+  pruneForces();
+
+  // ── Physics + particle render ─────────────────────────────────────────────
+  const forceArr=forces;
+  const fLen=forceArr.length;
+  activeP=0;
+
+  for(let i=0;i<MAX_P;i++){
+    if(!pact[i])continue;
+    activeP++;
+    plife[i]-=dt;
+    if(plife[i]<=0){pact[i]=0;continue;}
+
+    let ax=0,ay=0;
+    // Force kernels dispatch
+    for(let j=0;j<fLen;j++){
+      const f=forceArr[j];
+      const dx=f.x-px2[i], dy=f.y-py2[i];
+      const dSq=dx*dx+dy*dy;
+      const dist=Math.sqrt(dSq)||.001;
+      const kernel=FORCE_KERNELS[f.type];
+      if(kernel){
+        const [dax,day]=kernel(px2[i],py2[i],f.x,f.y,dx,dy,dSq,dist,dt,f);
+        ax+=dax; ay+=day;
+
+        // Ink color influence (dominant nearby force tints particle)
+        if(dSq<900){
+          const ink=f.ink||[255,255,255];
+          const w=Math.min(.04,900/Math.max(dSq,1)*.00004);
+          pr[i]=(pr[i]+(ink[0]-pr[i])*w)|0;
+          pg[i]=(pg[i]+(ink[1]-pg[i])*w)|0;
+          pb[i]=(pb[i]+(ink[2]-pb[i])*w)|0;
+        }
+      }
+    }
+
+    // Curl noise
+    const cs=0.026, cz=fc*0.0025;
+    ax+=curlX(px2[i]*cs,py2[i]*cs,cz)*dt*4.5;
+    ay+=curlY(px2[i]*cs,py2[i]*cs,cz)*dt*4.5;
+
+    pvx[i]=(pvx[i]+ax)*dampVal;
+    pvy[i]=(pvy[i]+ay)*dampVal;
+
+    // Velocity clamp
+    const spd=Math.sqrt(pvx[i]*pvx[i]+pvy[i]*pvy[i]);
+    if(spd>48){const s=48/spd;pvx[i]*=s;pvy[i]*=s;}
+
+    // NaN guard
+    if(pvx[i]!==pvx[i]||pvy[i]!==pvy[i]){pact[i]=0;continue;}
+
+    px2[i]+=pvx[i]*dt;
+    py2[i]+=pvy[i]*dt;
+
+    // Color: ember fade
+    const lr=plife[i]/P_LIFE;
+    const t2=Math.pow(1-lr,2.2);
+    const r2=(pr[i]+(255-pr[i])*t2*.7)|0;
+    const g2=(pg[i]+(50-pg[i])*t2*.7)|0;
+    const b2=(pb[i]+(0 -pb[i])*t2*.7)|0;
+
+    const alpha=lr*.88;
+    const sz = lr * 0.5 + 0.08;
+    ctx.fillStyle=`rgba(${r2},${g2},${b2},${alpha.toFixed(2)})`;
+    ctx.beginPath();
+    ctx.arc(px2[i],py2[i],sz,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // ── Draw forces
+  const t=now/1000;
+  for(const f of forces)drawForce(f,t);
+
+  // ── Echo trails
+  if(echoOn)drawEchoes();
+
+  // ── Ripples
+  for(const r of ripples){
+    if(!r.active)continue;
+    r.age+=rawDt*2.8;
+    if(r.age>1.4){r.active=false;continue;}
+    const col=hexRgb(TOOL_HEX[r.type]||'#fff');
+    const ra=Math.max(0,1-r.age*1.5)*.75;
+    ctx.save(); ctx.globalAlpha=ra;
+    ctx.strokeStyle=`rgb(${col[0]},${col[1]},${col[2]})`; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(r.x,r.y,r.age*180,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Bot cursors
+  for(const b of bots){
+    ctx.save(); ctx.globalAlpha=.7;
+    const grd=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,16);
+    grd.addColorStop(0,`rgba(${b.r},${b.g},${b.b},.6)`); grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(b.x,b.y,16,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=`rgb(${b.r},${b.g},${b.b})`; ctx.beginPath(); ctx.arc(b.x,b.y,4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Own cursor glow
+  if(onCanvas){
+    ctx.save(); ctx.globalAlpha=.3;
+    const grd=ctx.createRadialGradient(mouseX,mouseY,0,mouseX,mouseY,22);
+    grd.addColorStop(0,`rgba(${myColor[0]},${myColor[1]},${myColor[2]},.7)`);
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(mouseX,mouseY,22,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Audio pad from particle density
+  updatePadVolume(activeP);
+
+  // ── UI stats
+  document.getElementById('fps-pill').textContent=fpsV+' fps';
+  document.getElementById('px-pill').textContent=(activeP/1000).toFixed(1)+'k particles';
+}
+
+lastT=performance.now();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
