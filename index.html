@@ -1,3 +1,4 @@
+just gi ve me the corrected code of :
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +9,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Segoe UI',system-ui,sans-serif;color:#fff;user-select:none}
 body{min-height:100vh;min-height:100dvh;overscroll-behavior:none}
-#c{display:block;width:100%;height:100%;cursor:none;position:absolute;inset:0}
+#c{display:block;width:100%;height:100%;cursor:none;position:absolute;inset:0;touch-action:none}
 #cursor{position:fixed;pointer-events:none;z-index:200;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;border:2px solid #fff;transition:border-color .2s,transform .1s;mix-blend-mode:screen}
 /* ── TOP BAR ── */
 #top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:linear-gradient(to bottom,rgba(5,5,20,.95),transparent);z-index:50;pointer-events:none}
@@ -355,6 +356,9 @@ let activeTool='attractor';
 let simSpeed=1, spawnRate=70, dampVal=0.965;
 let showField=false, audioOn=true, echoOn=true, starsOn=true;
 let activeP=0, fps=0, lastFpsTime=0, frameCount=0;
+let activeTouchPointerId=null, touchMoved=false, touchStartX=0, touchStartY=0, touchStartTime=0;
+const TOUCH_TAP_SQ=8*8;
+const TOUCH_TAP_MS=180;
 
 const palette=['#818cf8','#38bdf8','#f472b6','#34d399','#fbbf24','#fb7185','#a3e635','#f97316'];
 let myColor=[130,140,255], myHex='#818cf8';
@@ -699,17 +703,69 @@ panelDockBtns.forEach(btn=>{
   });
 });
 
+function isInteractiveUiTarget(target){
+  return target instanceof Element && !!target.closest('#toolbar,.pcard,#top-right,#ob,#panel,#panelDock');
+}
 window.addEventListener('pointermove',e=>{
-  mouseX=e.clientX; mouseY=e.clientY; onCanvas=true;
-  cursorEl.style.left=mouseX+'px'; cursorEl.style.top=mouseY+'px';
+  const touchPainting=activeTouchPointerId===e.pointerId && e.pointerType!=='mouse';
+  if(touchPainting || !isInteractiveUiTarget(e.target)){
+    mouseX=e.clientX; mouseY=e.clientY; onCanvas=true;
+    cursorEl.style.left=mouseX+'px'; cursorEl.style.top=mouseY+'px';
+  }else if(e.pointerType==='mouse'){
+    onCanvas=false;
+  }
+  if(touchPainting){
+    if(e.cancelable)e.preventDefault();
+    const dx=e.clientX-touchStartX, dy=e.clientY-touchStartY;
+    if(dx*dx+dy*dy>TOUCH_TAP_SQ)touchMoved=true;
+  }
 });
 window.addEventListener('pointerleave',()=>{onCanvas=false;cursorEl.style.opacity='0'});
 window.addEventListener('pointerenter',()=>{cursorEl.style.opacity='1'});
 window.addEventListener('pointerdown',e=>{
-  if(e.target.closest('#toolbar,.pcard,#top-right,#ob,#panel'))return;
+  if(isInteractiveUiTarget(e.target))return;
   if(!e.target.closest('#panelDock')&&window.matchMedia('(max-width: 700px)').matches)setMobilePanel(null);
+  mouseX=e.clientX; mouseY=e.clientY; onCanvas=true;
+  if(e.pointerType!=='mouse'){
+    if(e.cancelable)e.preventDefault();
+    activeTouchPointerId=e.pointerId;
+    touchMoved=false;
+    touchStartX=e.clientX;
+    touchStartY=e.clientY;
+    touchStartTime=performance.now();
+    if(e.target===canvas && canvas.setPointerCapture){
+      try{ canvas.setPointerCapture(e.pointerId); }catch{}
+    }
+    initAudio();
+    return;
+  }
   initAudio();
   if(e.button===0)addForce(e.clientX,e.clientY,activeTool);
+});
+window.addEventListener('pointerup',e=>{
+  if(e.pointerType==='mouse')return;
+  if(activeTouchPointerId!==e.pointerId)return;
+  if(e.cancelable)e.preventDefault();
+  const touchDuration=performance.now()-touchStartTime;
+  const isTap=!touchMoved && touchDuration<=TOUCH_TAP_MS;
+  if(isTap && !isInteractiveUiTarget(e.target))addForce(e.clientX,e.clientY,activeTool);
+  if(canvas.hasPointerCapture?.(e.pointerId)){
+    try{ canvas.releasePointerCapture(e.pointerId); }catch{}
+  }
+  activeTouchPointerId=null;
+  touchMoved=false;
+  touchStartTime=0;
+  onCanvas=false;
+});
+window.addEventListener('pointercancel',e=>{
+  if(activeTouchPointerId!==e.pointerId)return;
+  if(canvas.hasPointerCapture?.(e.pointerId)){
+    try{ canvas.releasePointerCapture(e.pointerId); }catch{}
+  }
+  activeTouchPointerId=null;
+  touchMoved=false;
+  touchStartTime=0;
+  onCanvas=false;
 });
 window.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
