@@ -1,4 +1,3 @@
-just gi ve me the corrected code of :
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -276,34 +275,45 @@ const MAX_DT      = 0.1;
 const RIPPLE_POOL = 12;
 const ECHO_POOL   = 40;
 const SIM_BOTS    = 2;
+const BASE_FPS    = 60;
+const OFFSCREEN_MARGIN = 48;
+const FORCE_RADIUS_SQ = {
+  attractor: 90 * 90,
+  repulsor: 85 * 85,
+  vortex: 95 * 95,
+  gravity: 110 * 110,
+  dipole: 100 * 100,
+  blackhole: 150 * 150,
+  turbulence: 100 * 100,
+};
 
 // ── Force type physics kernels (dispatch table, not switch) ──────────────────
 // Each kernel: fn(px,py,fx,fy,dx,dy,dSq,dist,dt,f) → [ax,ay]
 const FORCE_KERNELS = {
   attractor(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq<0.5||dSq>500)return[0,0];
+    if(dSq<0.5||dSq>FORCE_RADIUS_SQ.attractor)return[0,0];
     const s=100/dSq*dt;
     return[dx/dist*s,dy/dist*s];
   },
   repulsor(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq<0.5||dSq>450)return[0,0];
+    if(dSq<0.5||dSq>FORCE_RADIUS_SQ.repulsor)return[0,0];
     const s=110/dSq*dt;
     return[-dx/dist*s,-dy/dist*s];
   },
   vortex(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq<0.5||dSq>550)return[0,0];
+    if(dSq<0.5||dSq>FORCE_RADIUS_SQ.vortex)return[0,0];
     // Tangential force (perpendicular to radius)
     const s=85/dSq*dt*f.spin;
     return[-dy/dist*s,dx/dist*s];
   },
   gravity(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq<0.3||dSq>800)return[0,0];
+    if(dSq<0.3||dSq>FORCE_RADIUS_SQ.gravity)return[0,0];
     // Newtonian gravity: F∝1/r² with mass
     const s=f.mass*140/Math.max(dSq,2)*dt;
     return[dx/dist*s,dy/dist*s];
   },
   dipole(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq<1||dSq>600)return[0,0];
+    if(dSq<1||dSq>FORCE_RADIUS_SQ.dipole)return[0,0];
     // Magnetic dipole: F ∝ cos(θ) towards N pole, away from S pole
     const angle=Math.atan2(dy,dx);
     const theta=angle-f.angle;
@@ -312,14 +322,14 @@ const FORCE_KERNELS = {
     return[dx/dist*s*cos,dy/dist*s*cos];
   },
   blackhole(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq<0.1)return[0,0];
+    if(dSq<0.1||dSq>FORCE_RADIUS_SQ.blackhole)return[0,0];
     // Event horizon: extreme pull, accretion disk tangential component
     const s=Math.min(220/dSq,25)*dt;
     const tang=0.4*s; // orbital tangential push
     return[dx/dist*s + -dy/dist*tang, dy/dist*s + dx/dist*tang];
   },
   turbulence(px,py,fx,fy,dx,dy,dSq,dist,dt,f){
-    if(dSq>600)return[0,0];
+    if(dSq>FORCE_RADIUS_SQ.turbulence)return[0,0];
     // Random-looking but deterministic chaos using position hash
     const h1=Math.sin(px*0.07+f.seed)*43758.5453;
     const h2=Math.sin(py*0.07+f.seed*1.3)*43758.5453;
@@ -357,7 +367,8 @@ let simSpeed=1, spawnRate=70, dampVal=0.965;
 let showField=false, audioOn=true, echoOn=true, starsOn=true;
 let activeP=0, fps=0, lastFpsTime=0, frameCount=0;
 let activeTouchPointerId=null, touchMoved=false, touchStartX=0, touchStartY=0, touchStartTime=0;
-const TOUCH_TAP_SQ=8*8;
+let userSpawnCarry=0;
+const TOUCH_TAP_SQ=3*3;
 const TOUCH_TAP_MS=180;
 
 const palette=['#818cf8','#38bdf8','#f472b6','#34d399','#fbbf24','#fb7185','#a3e635','#f97316'];
@@ -374,6 +385,7 @@ function resize(){
   dpr=Math.min(window.devicePixelRatio||1,2);
   W=canvas.offsetWidth; H=canvas.offsetHeight;
   canvas.width=W*dpr; canvas.height=H*dpr;
+  ctx.setTransform(1,0,0,1,0,0);
   ctx.scale(dpr,dpr);
 }
 resize(); window.addEventListener('resize',resize);
@@ -547,6 +559,7 @@ const BOT_COLORS=[
 const bots=BOT_COLORS.slice(0,SIM_BOTS).map((c,i)=>({
   x:200+Math.random()*400, y:200+Math.random()*200,
   tx:0,ty:0, moveT:0, moveP:2.5+i*1.2,
+  spawnCarry:0,
   forceT:0, forceP:7+i*3,
   r:c.r,g:c.g,b:c.b,hex:c.hex,
   preferredTool:['vortex','gravity','attractor','dipole'][i%4]
@@ -563,7 +576,9 @@ function updateBots(dt){
     }
     const dx=b.tx-b.x,dy=b.ty-b.y,d=Math.sqrt(dx*dx+dy*dy);
     if(d>1){const s=Math.min(d,160*dt);b.x+=dx/d*s;b.y+=dy/d*s;}
-    const n=Math.ceil(spawnRate*.4);
+    b.spawnCarry+=spawnRate*.4*dt*BASE_FPS;
+    const n=Math.floor(b.spawnCarry);
+    b.spawnCarry-=n;
     for(let i=0;i<n;i++)spawnP(b.x,b.y,b.r,b.g,b.b);
     b.forceT+=dt;
     if(b.forceT>b.forceP){
@@ -717,7 +732,7 @@ window.addEventListener('pointermove',e=>{
   if(touchPainting){
     if(e.cancelable)e.preventDefault();
     const dx=e.clientX-touchStartX, dy=e.clientY-touchStartY;
-    if(dx*dx+dy*dy>TOUCH_TAP_SQ)touchMoved=true;
+    if(dx*dx+dy*dy>=TOUCH_TAP_SQ)touchMoved=true;
   }
 });
 window.addEventListener('pointerleave',()=>{onCanvas=false;cursorEl.style.opacity='0'});
@@ -769,7 +784,7 @@ window.addEventListener('pointercancel',e=>{
 });
 window.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
-  if(e.code==='Space'){e.preventDefault();initAudio();addForce(mouseX,mouseY,activeTool==='repulsor'?'repulsor':'repulsor');}
+  if(e.code==='Space'){e.preventDefault();initAudio();addForce(mouseX,mouseY,'repulsor');}
   const tool=HOTKEYS[e.code];
   if(tool)setTool(tool);
 });
@@ -837,7 +852,17 @@ palette.forEach(hex=>{
 
 // ─ Share & Clear ────────────────────────────────────────────────────────────
 document.getElementById('share-btn').addEventListener('click',saveSnapshot);
-document.getElementById('clear-btn').addEventListener('click',()=>{forces.length=0;echoes.forEach(e=>e.active=false);pact.fill(0);});
+document.getElementById('clear-btn').addEventListener('click',()=>{
+  forces.length=0;
+  echoes.forEach(e=>e.active=false);
+  ripples.forEach(r=>r.active=false);
+  pact.fill(0);
+  userSpawnCarry=0;
+  onCanvas=false;
+  activeTouchPointerId=null;
+  touchMoved=false;
+  touchStartTime=0;
+});
 
 // ─ Onboarding ───────────────────────────────────────────────────────────────
 const ob=document.getElementById('ob');
@@ -948,8 +973,6 @@ function drawForce(f,t){
       // axis
       ctx.strokeStyle=`rgba(${fr},${fg},${fb},.5)`; ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.moveTo(f.x-dx2,f.y-dy2); ctx.lineTo(f.x+dx2,f.y+dy2); ctx.stroke();
-      // Rotating arrow to show field direction
-      f.angle+=0.012;
       break;
     }
     case 'blackhole':{
@@ -1067,6 +1090,7 @@ function frame(now){
   const rawDt=(now-lastT)/1000; lastT=now;
   if(rawDt<=0||rawDt>1)return;
   const dt=Math.min(rawDt,MAX_DT)*simSpeed;
+  const frameDamp=Math.pow(dampVal,dt/(1/BASE_FPS));
   fc++; fpsT+=rawDt;
   if(fpsT>1){fpsV=Math.round(fc/fpsT);fc=0;fpsT=0;}
 
@@ -1090,37 +1114,34 @@ function frame(now){
   // ── Bots
   updateBots(dt);
 
-// ── Thin Rotating Line Spawn (Elegant Silk Brush) - FIXED
-if (onCanvas) {
-  const n = Math.max(8, Math.ceil(spawnRate * 0.68));   // ensure minimum spawns
-  const lineLength = 46;                                // thin line length
-  const rotationSpeed = 16.4;                            // nice rotation feel
+  // ── Thin rotating line spawn
+  if(onCanvas){
+    userSpawnCarry+=spawnRate*.68*rawDt*BASE_FPS;
+    const n=Math.max(1,Math.floor(userSpawnCarry));
+    userSpawnCarry-=n;
+    const lineLength=46;
+    const rotationSpeed=16.4;
+    const time=now/1000;
+    const angle=time*rotationSpeed;
 
-  const angle = (performance.now() / 1000) * rotationSpeed;
-
-  for (let i = 0; i < n; i++) {
-    // Even distribution along the line
-    const t = (i / (n - 1 || 1)) - 0.5;   // safe division
-
-    const offsetX = Math.cos(angle) * t * lineLength;
-    const offsetY = Math.sin(angle) * t * lineLength;
-
-    const spawnX = mouseX + offsetX;
-    const spawnY = mouseY + offsetY;
-
-const col = getSpawnColor(
-  spawnX, 
-  spawnY, 
-  i, 
-  n, 
-  performance.now() / 1000
-);
-
-spawnP(spawnX, spawnY, col[0], col[1], col[2]);  }
-}
+    for(let i=0;i<n;i++){
+      const t=(i/(n-1||1))-.5;
+      const offsetX=Math.cos(angle)*t*lineLength;
+      const offsetY=Math.sin(angle)*t*lineLength;
+      const spawnX=mouseX+offsetX;
+      const spawnY=mouseY+offsetY;
+      const col=getSpawnColor(spawnX,spawnY,i,n,time);
+      spawnP(spawnX,spawnY,col[0],col[1],col[2]);
+    }
+  }else{
+    userSpawnCarry=0;
+  }
 
   // ── Prune forces
   pruneForces();
+  for(const f of forces){
+    if(f.type==='dipole')f.angle+=0.72*rawDt;
+  }
 
   // ── Physics + particle render ─────────────────────────────────────────────
   const forceArr=forces;
@@ -1161,8 +1182,8 @@ spawnP(spawnX, spawnY, col[0], col[1], col[2]);  }
     ax+=curlX(px2[i]*cs,py2[i]*cs,cz)*dt*4.5;
     ay+=curlY(px2[i]*cs,py2[i]*cs,cz)*dt*4.5;
 
-    pvx[i]=(pvx[i]+ax)*dampVal;
-    pvy[i]=(pvy[i]+ay)*dampVal;
+    pvx[i]=(pvx[i]+ax)*frameDamp;
+    pvy[i]=(pvy[i]+ay)*frameDamp;
 
     // Velocity clamp
     const spd=Math.sqrt(pvx[i]*pvx[i]+pvy[i]*pvy[i]);
@@ -1173,6 +1194,13 @@ spawnP(spawnX, spawnY, col[0], col[1], col[2]);  }
 
     px2[i]+=pvx[i]*dt;
     py2[i]+=pvy[i]*dt;
+    if(
+      px2[i]<-OFFSCREEN_MARGIN||px2[i]>W+OFFSCREEN_MARGIN||
+      py2[i]<-OFFSCREEN_MARGIN||py2[i]>H+OFFSCREEN_MARGIN
+    ){
+      pact[i]=0;
+      continue;
+    }
 
     // Color: ember fade
     const lr=plife[i]/P_LIFE;
