@@ -93,7 +93,7 @@
         const mobileHintEl = document.getElementById('mobileHint');
 
         let width, height, strands = [];
-        let mouse = { x: 0, y: 0, down: false, active: false };
+        let mouse = { x: 0, y: 0, down: false, hover: false };
         let time = 0;
         let touchHoldTimer = null;
         let activeTouchPointerId = null;
@@ -135,7 +135,7 @@
                         const pull = Math.min(4, 1500 / (dist + 30));
                         node.vx += dx * pull * 0.03 + (dy * 0.12);
                         node.vy += dy * pull * 0.03 - (dx * 0.12);
-                    } else if (mouse.active && dist < 150) {
+                    } else if (mouse.hover && dist < 150) {
                         const push = (150 - dist) / 150;
                         node.vx -= dx * push * 0.5;
                         node.vy -= dy * push * 0.5;
@@ -146,13 +146,15 @@
                     node.vx += (homeX - node.x) * spring;
                     node.vy += (homeY - node.y) * spring;
 
-                    node.vx *= 0.92; node.vy *= 0.92;
-                    node.x += node.vx; node.y += node.vy;
+                    node.vx *= 0.92;
+                    node.vy *= 0.92;
+                    node.x += node.vx;
+                    node.y += node.vy;
                 });
             }
 
             draw(pulse) {
-                const speed = Math.abs(this.nodes[nodesPerStrand/2].vx) + Math.abs(this.nodes[nodesPerStrand/2].vy);
+                const speed = Math.abs(this.nodes[nodesPerStrand / 2].vx) + Math.abs(this.nodes[nodesPerStrand / 2].vy);
                 const lightness = mouse.down ? 50 + speed * 10 : 35 + speed * 4;
                 
                 ctx.beginPath();
@@ -214,11 +216,17 @@
             touchLongPressArmed = false;
             clearTouchHold();
             mouse.down = false;
-            mouse.active = false;
+            mouse.hover = false;
         }
+
+        canvas.addEventListener('pointerenter', (e) => {
+            updatePointer(e.clientX, e.clientY);
+            if (e.pointerType !== 'touch') mouse.hover = true;
+        });
 
         canvas.addEventListener('pointermove', (e) => {
             updatePointer(e.clientX, e.clientY);
+            mouse.hover = true;
 
             if (e.pointerType === 'touch' && activeTouchPointerId === e.pointerId && touchLongPressArmed) {
                 const moved = Math.hypot(e.clientX - touchStartX, e.clientY - touchStartY);
@@ -239,7 +247,7 @@
                 touchStartY = e.clientY;
                 touchLongPressArmed = true;
                 mouse.down = false;
-                mouse.active = true;
+                mouse.hover = true;
                 clearTouchHold();
                 try { canvas.setPointerCapture(e.pointerId); } catch {}
                 touchHoldTimer = setTimeout(() => {
@@ -248,7 +256,7 @@
                 return;
             }
 
-            mouse.active = true;
+            mouse.hover = true;
             mouse.down = true;
         });
 
@@ -259,7 +267,6 @@
                 return;
             }
             mouse.down = false;
-            mouse.active = false;
         });
 
         canvas.addEventListener('pointercancel', (e) => {
@@ -269,11 +276,16 @@
                 return;
             }
             mouse.down = false;
-            mouse.active = false;
+            mouse.hover = false;
         });
+
         canvas.addEventListener('pointerleave', () => {
-            if (activeTouchPointerId === null) mouse.active = false;
+            if (activeTouchPointerId === null) {
+                mouse.hover = false;
+                mouse.down = false;
+            }
         });
+
         window.addEventListener('resize', init);
         
         init(); 
