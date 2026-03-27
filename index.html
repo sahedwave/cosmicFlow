@@ -355,6 +355,7 @@ let activeTool='attractor';
 let simSpeed=1, spawnRate=70, dampVal=0.965;
 let showField=false, audioOn=true, echoOn=true, starsOn=true;
 let activeP=0, fps=0, lastFpsTime=0, frameCount=0;
+let activeTouchPointerId=null, touchMoved=false, touchStartX=0, touchStartY=0;
 
 const palette=['#818cf8','#38bdf8','#f472b6','#34d399','#fbbf24','#fb7185','#a3e635','#f97316'];
 let myColor=[130,140,255], myHex='#818cf8';
@@ -701,6 +702,9 @@ panelDockBtns.forEach(btn=>{
 
 window.addEventListener('pointermove',e=>{
   mouseX=e.clientX; mouseY=e.clientY; onCanvas=true;
+  if(e.pointerType==='touch'&&activeTouchPointerId===e.pointerId){
+    if(Math.hypot(e.clientX-touchStartX,e.clientY-touchStartY)>12)touchMoved=true;
+  }
   cursorEl.style.left=mouseX+'px'; cursorEl.style.top=mouseY+'px';
 });
 window.addEventListener('pointerleave',()=>{onCanvas=false;cursorEl.style.opacity='0'});
@@ -708,8 +712,31 @@ window.addEventListener('pointerenter',()=>{cursorEl.style.opacity='1'});
 window.addEventListener('pointerdown',e=>{
   if(e.target.closest('#toolbar,.pcard,#top-right,#ob,#panel'))return;
   if(!e.target.closest('#panelDock')&&window.matchMedia('(max-width: 700px)').matches)setMobilePanel(null);
+  if(e.pointerType==='touch'){
+    activeTouchPointerId=e.pointerId;
+    touchMoved=false;
+    touchStartX=e.clientX;
+    touchStartY=e.clientY;
+    return;
+  }
   initAudio();
   if(e.button===0)addForce(e.clientX,e.clientY,activeTool);
+});
+window.addEventListener('pointerup',e=>{
+  if(e.pointerType==='touch'&&activeTouchPointerId===e.pointerId){
+    if(!touchMoved&&!e.target.closest('#toolbar,.pcard,#top-right,#ob,#panel,#panelDock')){
+      initAudio();
+      addForce(e.clientX,e.clientY,activeTool);
+    }
+    activeTouchPointerId=null;
+    touchMoved=false;
+  }
+});
+window.addEventListener('pointercancel',e=>{
+  if(e.pointerType==='touch'&&activeTouchPointerId===e.pointerId){
+    activeTouchPointerId=null;
+    touchMoved=false;
+  }
 });
 window.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
